@@ -1,0 +1,206 @@
+// main/webpage.h
+#ifndef WEBPAGE_H
+#define WEBPAGE_H
+
+static const char* INDEX_HTML = R"rawliteral(
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Water Tower Control</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial; text-align: center; margin-top: 50px; background: #f0f0f0; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        h2 { color: #555; margin-top: 30px; }
+        button { padding: 15px 30px; font-size: 20px; margin: 10px; border: none; border-radius: 5px; cursor: pointer; }
+        .on { background-color: #4CAF50; color: white; }
+        .off { background-color: #f44336; color: white; }
+        .status-row { display: flex; justify-content: space-around; margin: 20px 0; }
+        .status-card { flex: 1; margin: 10px; padding: 20px; border-radius: 8px; background: #f5f5f5; }
+        .status-card.on { background: #d4edda; color: #155724; }
+        .status-card.off { background: #f8d7da; color: #721c24; }
+        .status-label { font-size: 16px; margin-bottom: 10px; }
+        .status-value { font-size: 24px; font-weight: bold; }
+        a { display: inline-block; margin-top: 20px; color: #666; }
+        .section { border-top: 1px solid #ddd; margin-top: 30px; padding-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Water Tower Control Panel</h1>
+        
+        <div class="status-row">
+            <div class="status-card" id="pump-status">
+                <div class="status-label">Pump</div>
+                <div class="status-value">Loading...</div>
+            </div>
+            <div class="status-card" id="fan-status">
+                <div class="status-label">Fan</div>
+                <div class="status-value">Loading...</div>
+            </div>
+            <div class="status-card" id="temp-status">
+                <div class="status-label">Water Temperature</div>
+                <div class="status-value">Loading...</div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Pump Control</h2>
+            <button class="on" onclick="controlPump('on')">Turn Pump ON</button>
+            <button class="off" onclick="controlPump('off')">Turn Pump OFF</button>
+        </div>
+        
+        <div class="section">
+            <h2>Fan Control</h2>
+            <button class="on" onclick="controlFan('on')">Turn Fan ON</button>
+            <button class="off" onclick="controlFan('off')">Turn Fan OFF</button>
+        </div>
+        
+        <div class="section">
+            <h3>Quick Links:</h3>
+            <a href="/api/pump/on">/api/pump/on</a> | 
+            <a href="/api/pump/off">/api/pump/off</a> | 
+            <a href="/api/pump/status">/api/pump/status</a> | 
+            <a href="/api/fan/on">/api/fan/on</a> | 
+            <a href="/api/fan/off">/api/fan/off</a> | 
+            <a href="/api/fan/status">/api/fan/status</a> | 
+            <a href="/api/status">/api/status</a>
+        </div>
+    </div>
+
+    <script>
+    function controlPump(action) {
+        const data = {
+            success: action === 'on'
+        };
+        
+        fetch('/api/pump/' + action, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('HTTP error ' + response.status);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Pump control success:', data);
+            updateStatus();
+        })
+        .catch(error => {
+            console.error('Error controlling pump:', error);
+            updateStatus();
+        });
+    }
+
+    function controlFan(action) {
+        const data = {
+            success: action === 'on'
+        };
+        
+        fetch('/api/fan/' + action, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('HTTP error ' + response.status);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Fan control success:', data);
+            updateStatus();
+        })
+        .catch(error => {
+            console.error('Error controlling fan:', error);
+            updateStatus();
+        });
+    }
+    
+    function updateStatus() {
+        // Get pump status
+        fetch('/api/pump/status')
+            .then(response => response.json())
+            .then(data => {
+                const pumpDiv = document.getElementById('pump-status');
+                pumpDiv.querySelector('.status-value').textContent = 
+                    (data.pump === 'ON' || data.pump_status === true) ? 'ON' : 'OFF';
+                pumpDiv.className = 'status-card ' + 
+                    ((data.pump === 'ON' || data.pump_status === true) ? 'on' : 'off');
+            })
+            .catch(error => {
+                console.error('Error getting pump status:', error);
+            });
+        
+        // Get fan status
+        fetch('/api/fan/status')
+            .then(response => response.json())
+            .then(data => {
+                const fanDiv = document.getElementById('fan-status');
+                fanDiv.querySelector('.status-value').textContent = 
+                    (data.fan === 'ON' || data.fan_status === true) ? 'ON' : 'OFF';
+                fanDiv.className = 'status-card ' + 
+                    ((data.fan === 'ON' || data.fan_status === true) ? 'on' : 'off');
+            })
+            .catch(error => {
+                console.error('Error getting fan status:', error);
+            });
+    }
+
+    
+    function updateStatusTemp() {
+    // Get temperature status
+    fetch('/api/temp/status')  // Make sure this matches your endpoint
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('HTTP error ' + response.status);
+            }
+            return response.json();
+        })
+        .then(data => {
+            const tempDiv = document.getElementById('temp-status');
+
+            console.log(data.water_temperature);
+            
+            // Check if temperature is valid
+            if (data.water_temperature_valid === true && data.water_temperature != null) {
+                tempDiv.querySelector('.status-value').textContent = 
+                    data.water_temperature.toFixed(1) + ' C';  // Format with 1 decimal
+                tempDiv.className = 'status-card on';  // Green for valid
+            } else {
+                tempDiv.querySelector('.status-value').textContent = data.water_temperature.toFixed(1) + ' C';
+                tempDiv.className = 'status-card off';  // Red for invalid
+            }
+        })
+        .catch(error => {
+            console.error('Error getting temperature status:', error);
+            const tempDiv = document.getElementById('temp-status');
+            if (tempDiv) {
+                tempDiv.querySelector('.status-value').textContent = 'Error';
+                tempDiv.className = 'status-card off';
+            }
+        });
+}
+    
+    // Update status on page load and every 2 seconds
+    updateStatus();
+    updateStatusTemp();  // Add this
+    setInterval(() => {
+        updateStatus();
+        updateStatusTemp();  // Add this
+        }, 2000);
+    </script>
+</body>
+</html>
+)rawliteral";
+
+#endif // WEBPAGE_H
