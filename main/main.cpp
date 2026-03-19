@@ -1,4 +1,4 @@
-#include "http_server.h"
+
 #include <iostream>
 #include <string>
 #include "freertos/FreeRTOS.h"
@@ -17,8 +17,8 @@
 #include "freertos/FreeRTOS.h"
 #include <stdio.h>
 #include <time.h>
-
 #include "esp_system.h"
+#include "http_server_native.h"
 
 
 
@@ -26,7 +26,7 @@
 
 
 
-HTTPServer http_server;
+
 
 static const char* TAG = "WIFI_TEST";
 
@@ -215,24 +215,16 @@ void wifi_init_sta() {
 
     ESP_LOGI(TAG, "WiFi initialization complete. Connecting to %s with static IP 192.168.1.90...", WIFI_SSID);
 }
-
 static void http_server_task(void *pvParameter) {
-    // Wait for WiFi to be connected
     while (!wifi_connected) {
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
-    
-    ESP_LOGI(TAG, "Starting HTTP server...");
-    http_server.start();  // ADD THIS LINE - actually start the server!
-    
-    // Keep task alive
-    while (1) {
-        vTaskDelay(10000 / portTICK_PERIOD_MS);
-    }
+    start_native_server();  
+    while (1) vTaskDelay(10000 / portTICK_PERIOD_MS);
 }
 
-// Define the function OUTSIDE any loop or function
-// FIXED versions:
+
+
 void set_pump(bool on) {
     if (on) {
         gpio_set_level(GPIO_NUM_27, 1);  // ON 
@@ -252,7 +244,7 @@ void set_fan(bool on) {
         ESP_LOGI(TAG, "Fan turned OFF");
     }
 }
-// ... (all your code above is fine until app_main)
+
 
 extern "C" void app_main(void) {
 
@@ -297,6 +289,7 @@ extern "C" void app_main(void) {
     wifi_init_sta();
 
     // ✅ 4. THEN: Create tasks
+
     xTaskCreate(&http_server_task, "http_server_task", 4096, NULL, 5, NULL);
     xTaskCreate(&led_control_task, "led_control_task", 2048, NULL, 5, NULL);
 
@@ -319,20 +312,17 @@ extern "C" void app_main(void) {
         static int64_t last_log_fan = 0;  
 
          
-        http_server.set_pump_status(!raw_state_pump);//set pump status to frontend
-     
         
-         
-        http_server.set_fan_status(!raw_state_fan);//set fan status to frontend
 
         srand(time(NULL));
         float temp = 10.0f + (float)(rand() % 251) / 10.0f;
 
         // float temp = 66;
         bool valid = (temp > 0 && temp < 20); // Check if reading is reasonable
-        http_server.set_water_temperature_status(temp, valid);
+    
          
-        
+    
+        update_server_status(!raw_state_pump, !raw_state_fan, temp, valid);
 
         if (now - last_log_pump > 1000) {
             ESP_LOGI(TAG, "Raw GPIO%d = %d (%s)", 

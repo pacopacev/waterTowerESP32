@@ -1,8 +1,3 @@
-// main/webpage.h
-#ifndef WEBPAGE_H
-#define WEBPAGE_H
-
-static const char* INDEX_HTML = R"rawliteral(
 <!DOCTYPE html>
 <html>
 <head>
@@ -28,7 +23,7 @@ static const char* INDEX_HTML = R"rawliteral(
 </head>
 <body>
     <div class="container">
-        <h1>Water Tower Control Panel</h1>
+        <h1>💧 Water Tower Control Panel</h1>
         
         <div class="status-row">
             <div class="status-card" id="pump-status">
@@ -65,7 +60,8 @@ static const char* INDEX_HTML = R"rawliteral(
             <a href="/api/fan/on">/api/fan/on</a> | 
             <a href="/api/fan/off">/api/fan/off</a> | 
             <a href="/api/fan/status">/api/fan/status</a> | 
-            <a href="/api/status">/api/status</a>
+            <a href="/api/status">/api/status</a> |
+            <a href="/api/temp/status">/api/temp/status</a>
         </div>
     </div>
 
@@ -91,10 +87,12 @@ static const char* INDEX_HTML = R"rawliteral(
         .then(data => {
             console.log('Pump control success:', data);
             updateStatus();
+            updateStatusTemp();
         })
         .catch(error => {
             console.error('Error controlling pump:', error);
             updateStatus();
+            updateStatusTemp();
         });
     }
 
@@ -119,10 +117,12 @@ static const char* INDEX_HTML = R"rawliteral(
         .then(data => {
             console.log('Fan control success:', data);
             updateStatus();
+            updateStatusTemp();
         })
         .catch(error => {
             console.error('Error controlling fan:', error);
             updateStatus();
+            updateStatusTemp();
         });
     }
     
@@ -156,51 +156,46 @@ static const char* INDEX_HTML = R"rawliteral(
             });
     }
 
-    
     function updateStatusTemp() {
-    // Get temperature status
-    fetch('/api/temp/status')  // Make sure this matches your endpoint
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('HTTP error ' + response.status);
-            }
-            return response.json();
-        })
-        .then(data => {
-            const tempDiv = document.getElementById('temp-status');
-
-            console.log(data.water_temperature);
-            
-            // Check if temperature is valid
-            if (data.water_temperature_valid === true && data.water_temperature != null) {
-                tempDiv.querySelector('.status-value').textContent = 
-                    data.water_temperature.toFixed(1) + ' C';  // Format with 1 decimal
-                tempDiv.className = 'status-card on';  // Green for valid
-            } else {
-                tempDiv.querySelector('.status-value').textContent = data.water_temperature.toFixed(1) + ' C';
-                tempDiv.className = 'status-card off';  // Red for invalid
-            }
-        })
-        .catch(error => {
-            console.error('Error getting temperature status:', error);
-            const tempDiv = document.getElementById('temp-status');
-            if (tempDiv) {
-                tempDiv.querySelector('.status-value').textContent = 'Error';
-                tempDiv.className = 'status-card off';
-            }
-        });
-}
+        // Get temperature status
+        fetch('/api/temp/status')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('HTTP error ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                const tempDiv = document.getElementById('temp-status');
+                
+                // Check if temperature is valid
+                if (data.water_temperature_valid === true && data.water_temperature != null) {
+                    tempDiv.querySelector('.status-value').innerHTML = 
+                        data.water_temperature.toFixed(1) + '&deg;C';
+                    tempDiv.className = 'status-card on';
+                } else {
+                    tempDiv.querySelector('.status-value').innerHTML = 
+                        data.water_temperature.toFixed(1) + '&deg;C';
+                    tempDiv.className = 'status-card off';
+                }
+            })
+            .catch(error => {
+                console.error('Error getting temperature status:', error);
+                const tempDiv = document.getElementById('temp-status');
+                if (tempDiv) {
+                    tempDiv.querySelector('.status-value').innerHTML = 'Error';
+                    tempDiv.className = 'status-card off';
+                }
+            });
+    }
     
     // Update status on page load and every 2 seconds
     updateStatus();
-    updateStatusTemp();  // Add this
+    updateStatusTemp();
     setInterval(() => {
         updateStatus();
-        updateStatusTemp();  // Add this
-        }, 2000);
+        updateStatusTemp();
+    }, 2000);
     </script>
 </body>
 </html>
-)rawliteral";
-
-#endif // WEBPAGE_H
