@@ -70,6 +70,38 @@
     const ESP32_IP = '192.168.1.90';
     const API_BASE = `http://${ESP32_IP}`;
 
+    function isOnSameNetwork() {
+    // This will always return true when trying to connect to local IP
+    // The browser will block it, but we can show a helpful message
+    return true;
+}
+
+function showNetworkError() {
+    const statusDivs = ['pump-status', 'fan-status', 'temp-status'];
+    statusDivs.forEach(id => {
+        const div = document.getElementById(id);
+        if (div) {
+            div.querySelector('.status-value').innerHTML = 'Offline';
+            div.className = 'status-card off';
+        }
+    });
+    
+    // Show a message to the user
+    const container = document.querySelector('.container');
+    const warningDiv = document.createElement('div');
+    warningDiv.className = 'warning';
+    warningDiv.innerHTML = `
+        <div style="background: #fff3cd; color: #856404; padding: 15px; margin: 20px 0; border-radius: 5px; border: 1px solid #ffeeba;">
+            <strong>⚠️ Cannot connect to ESP32</strong>
+            <p style="margin: 10px 0 0 0; font-size: 14px;">
+                Make sure you're connected to the same WiFi network as your ESP32 (192.168.1.90).
+                This page is served over HTTPS but your ESP32 uses HTTP, which browsers block for security.
+            </p>
+        </div>
+    `;
+    container.insertBefore(warningDiv, container.firstChild);
+}
+
     function controlPump(action) {
         const data = {
             success: action === 'on'
