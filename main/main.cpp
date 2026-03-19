@@ -1,4 +1,4 @@
-
+#include "mdns.h"
 #include <iostream>
 #include <string>
 #include "freertos/FreeRTOS.h"
@@ -19,6 +19,7 @@
 #include <time.h>
 #include "esp_system.h"
 #include "http_server_native.h"
+#include "mdns.h"
 
 
 
@@ -28,7 +29,7 @@
 
 
 
-static const char* TAG = "WIFI_TEST";
+static const char* TAG = "WIFI";
 
 // Replace with your WiFi credentialss
 #define WIFI_SSID "ELOPARWFNT"
@@ -215,6 +216,23 @@ void wifi_init_sta() {
 
     ESP_LOGI(TAG, "WiFi initialization complete. Connecting to %s with static IP 192.168.1.90...", WIFI_SSID);
 }
+void start_mdns_service(void) {
+    // Initialize mDNS
+    esp_err_t err = mdns_init();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "mDNS init failed: %d", err);
+        return;
+    }
+
+        // Set hostname (this will resolve as watertower.local)
+    mdns_hostname_set("watertower");
+    
+    // Set default instance name
+    mdns_instance_name_set("Water Tower Control System");
+
+    // Add HTTP service
+    mdns_service_add(NULL, "_http", "_tcp", 80, NULL, 0);
+}
 static void http_server_task(void *pvParameter) {
     while (!wifi_connected) {
         vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -289,7 +307,7 @@ extern "C" void app_main(void) {
     wifi_init_sta();
 
     // ✅ 4. THEN: Create tasks
-
+    start_mdns_service(); 
     xTaskCreate(&http_server_task, "http_server_task", 4096, NULL, 5, NULL);
     xTaskCreate(&led_control_task, "led_control_task", 2048, NULL, 5, NULL);
 
