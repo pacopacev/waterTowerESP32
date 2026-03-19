@@ -3,6 +3,9 @@
 #include "esp_log.h"
 #include "control.h"
 
+// Declare the embedded file
+extern const char index_html_start[] asm("_binary_index_html_start");
+extern const char index_html_end[] asm("_binary_index_html_end");
 
 static const char* TAG = "HTTP_SERVER";
 static httpd_handle_t server = NULL;
@@ -13,19 +16,6 @@ static bool g_fan_status = false;
 static float g_water_temp = 0.0f;
 static bool g_temp_valid = false;
 
-void add_cors_headers(httpd_req_t *req) {
-    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
-    httpd_resp_set_hdr(req, "Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    httpd_resp_set_hdr(req, "Access-Control-Allow-Headers", "Content-Type");
-    httpd_resp_set_hdr(req, "Access-Control-Max-Age", "86400");
-}
-
-esp_err_t options_handler(httpd_req_t *req) {
-    add_cors_headers(req);
-    httpd_resp_set_status(req, "204 No Content");
-    return httpd_resp_send(req, NULL, 0);
-}
-
 void update_server_status(bool pump, bool fan, float temp, bool temp_valid) {
     g_pump_status = pump;
     g_fan_status = fan;
@@ -33,24 +23,15 @@ void update_server_status(bool pump, bool fan, float temp, bool temp_valid) {
     g_temp_valid = temp_valid;
 }
 
-// Root handler
-// static esp_err_t root_handler(httpd_req_t *req) {
-//     httpd_resp_set_type(req, "text/html");
-//     httpd_resp_send(req, INDEX_HTML, strlen(INDEX_HTML));
-//     return ESP_OK;
-// }
-
+// Root handler - serves index.html directly
 static esp_err_t root_handler(httpd_req_t *req) {
-    // Redirect to GitHub Pages
-    httpd_resp_set_status(req, "302 Found");
-    httpd_resp_set_hdr(req, "Location", "https://pacopacev.github.io/waterTowerESP32/");
-    httpd_resp_send(req, NULL, 0);
+    httpd_resp_set_type(req, "text/html");
+    httpd_resp_send(req, index_html_start, index_html_end - index_html_start);
     return ESP_OK;
 }
 
 // Pump status
 static esp_err_t pump_status_handler(httpd_req_t *req) {
-    add_cors_headers(req);
     char response[128];
     snprintf(response, sizeof(response), 
              "{\"pump\":\"%s\", \"pump_status\":%s}",
@@ -63,27 +44,26 @@ static esp_err_t pump_status_handler(httpd_req_t *req) {
 
 // Pump ON
 static esp_err_t pump_on_handler(httpd_req_t *req) {
-    add_cors_headers(req);
     g_pump_status = true;
     set_pump(true);
+    const char* response = "{\"success\":true,\"pump\":true}";
     httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, "{\"success\":true,\"pump\":true}", 29);
+    httpd_resp_send(req, response, strlen(response));
     return ESP_OK;
 }
 
 // Pump OFF
 static esp_err_t pump_off_handler(httpd_req_t *req) {
-    add_cors_headers(req);
     g_pump_status = false;
     set_pump(false);
+    const char* response = "{\"success\":true,\"pump\":false}";
     httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, "{\"success\":true,\"pump\":false}", 30);
+    httpd_resp_send(req, response, strlen(response));
     return ESP_OK;
 }
 
 // Fan status
 static esp_err_t fan_status_handler(httpd_req_t *req) {
-    add_cors_headers(req);
     char response[128];
     snprintf(response, sizeof(response), 
              "{\"fan\":\"%s\", \"fan_status\":%s}",
@@ -94,29 +74,28 @@ static esp_err_t fan_status_handler(httpd_req_t *req) {
     return ESP_OK;
 }
 
-// Fan ON
+// Fan ON - FIXED
 static esp_err_t fan_on_handler(httpd_req_t *req) {
-    add_cors_headers(req);
     g_fan_status = true;
     set_fan(true);
+    const char* response = "{\"success\":true,\"fan\":true}";
     httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, "{\"success\":true,\"fan\":true}", 28);
+    httpd_resp_send(req, response, strlen(response));
     return ESP_OK;
 }
 
-// Fan OFF
+// Fan OFF - FIXED
 static esp_err_t fan_off_handler(httpd_req_t *req) {
-    add_cors_headers(req);
     g_fan_status = false;
     set_fan(false);
+    const char* response = "{\"success\":true,\"fan\":false}";
     httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, "{\"success\":true,\"fan\":false}", 29);
+    httpd_resp_send(req, response, strlen(response));
     return ESP_OK;
 }
 
 // Temperature status
 static esp_err_t temp_status_handler(httpd_req_t *req) {
-    add_cors_headers(req);
     char response[128];
     snprintf(response, sizeof(response), 
              "{\"water_temperature\":%.2f,\"water_temperature_valid\":%s}",
@@ -130,20 +109,11 @@ static esp_err_t temp_status_handler(httpd_req_t *req) {
 void start_native_server(void) {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.server_port = 80;
-    config.max_uri_handlers = 12;  // Increased for OPTIONS handler
+    config.max_uri_handlers = 10;
     config.stack_size = 4096;
     config.task_priority = 5;
     
     if (httpd_start(&server, &config) == ESP_OK) {
-        // Register OPTIONS handler FIRST (catch-all for preflight)
-        httpd_uri_t options_uri = {
-            .uri = "/*",
-            .method = HTTP_OPTIONS,
-            .handler = options_handler,
-            .user_ctx = NULL
-        };
-        httpd_register_uri_handler(server, &options_uri);
-        
         // Register all endpoints
         httpd_uri_t uris[] = {
             {"/", HTTP_GET, root_handler, NULL},
@@ -160,7 +130,7 @@ void start_native_server(void) {
             httpd_register_uri_handler(server, &uris[i]);
         }
         
-        ESP_LOGI(TAG, "HTTP Server started on port 80 with CORS enabled");
+        ESP_LOGI(TAG, "HTTP Server started on port 80");
     } else {
         ESP_LOGE(TAG, "Failed to start HTTP server");
     }
