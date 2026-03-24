@@ -20,6 +20,22 @@
         .status-value { font-size: 24px; font-weight: bold; }
         a { display: inline-block; margin-top: 20px; color: #666; }
         .section { border-top: 1px solid #ddd; margin-top: 30px; padding-top: 20px; }
+        .logout-btn {
+                width: 100%;
+                padding: 12px;
+                background: #667eea;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                font-size: 16px;
+                cursor: pointer;
+                transition: background 0.3s;
+                width: 30%;
+                }
+                
+                .logout-btn:hover {
+                background: #764ba2;
+                }
     </style>
 </head>
 <body>
@@ -69,7 +85,7 @@
         </div>
         <div>
             <section class="section">
-                <button onclick="logout()">Logout</button>
+                <button class = "logout-btn" onclick="logout()">Logout</button>
             <!-- <a href="/login">Login</a> -->
             </section>
         </div>
