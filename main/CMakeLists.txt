@@ -1,10 +1,14 @@
 # main/CMakeLists.txt
 idf_component_register(SRCS "main.cpp" "http_server_native.cpp"
                     INCLUDE_DIRS "."
-                    EMBED_FILES "index.html"
+                    EMBED_FILES 
+                        "index.html"
+                        "login.html"
+                        "login.css"
+                        "login.js"
                     REQUIRES 
                         mdns
-                        esp_wifi           # Changed from 'wifi' to 'esp_wifi'
+                        esp_wifi
                         esp_netif
                         esp_event
                         nvs_flash
@@ -20,4 +24,5 @@ idf_component_register(SRCS "main.cpp" "http_server_native.cpp"
                         esp_rom
                         soc
                         hal
+                        json                     # ← Changed from cJSON to json
 )

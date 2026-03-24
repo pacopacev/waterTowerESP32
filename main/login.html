@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💧</text></svg>">
+    <link rel="stylesheet" href="/login.css">
+    <title>Water Tower Control Login</title>
+    <style>
+        /* Your CSS here */
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <!-- <div class="avatar">💧</div> -->
+        <h1>Water Tower Control</h1>
+        
+        <div id="errorMsg" class="error-msg" style="display:none">
+            Invalid username or password
+        </div>
+        
+        <form id="loginForm" onsubmit="return handleLogin(event)">
+            <div class="input-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Enter username" required>
+            </div>
+            
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter password" required>
+            </div>
+            
+            <button type="submit">Login</button>
+        </form>
+        
+        <div class="info">
+            <p>Default: admin / admin</p>
+        </div>
+    </div>
+
+    <script src="/login.js"></script>
+</body>
+</html>

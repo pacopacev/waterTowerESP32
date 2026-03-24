@@ -3,6 +3,7 @@
 <head>
     <title>Water Tower Control</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💧</text></svg>">
     <style>
         body { font-family: Arial; text-align: center; margin-top: 50px; background: #f0f0f0; }
         .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
@@ -24,6 +25,8 @@
 <body>
     <div class="container">
         <h1>Water Tower Control Panel</h1>
+
+
         
         <div class="status-row">
             <div class="status-card" id="pump-status">
@@ -62,6 +65,13 @@
             <a href="/api/fan/status">/api/fan/status</a> | 
             <a href="/api/status">/api/status</a> |
             <a href="/api/temp/status">/api/temp/status</a>
+            
+        </div>
+        <div>
+            <section class="section">
+                <button onclick="logout()">Logout</button>
+            <!-- <a href="/login">Login</a> -->
+            </section>
         </div>
     </div>
 
@@ -196,6 +206,30 @@
         updateStatus();
         updateStatusTemp();
     }, 2000);
+
+    function logout() {
+    fetch('/logout', {
+        method: 'POST'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('HTTP error ' + response.status);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Logout success:', data);
+        // Clear cookie locally as backup
+        document.cookie = "session_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        window.location.href = '/login';
+    })
+    .catch(error => {
+        console.error('Error logging out:', error);
+        // Still clear cookie and redirect
+        document.cookie = "session_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        window.location.href = '/login';
+    });
+}
     </script>
 </body>
 </html>
