@@ -214,6 +214,18 @@
                 }
             });
     }
+
+    function updateWifiStatus() {
+        fetch("/api/wifi/status")
+        .then(response => {
+                if (!response.ok) {
+                    throw new Error('HTTP error ' + response.status);
+                }
+                return response.json();
+            })
+
+        
+    }
     
     // Update status on page load and every 2 seconds
     updateStatus();
@@ -221,6 +233,7 @@
     setInterval(() => {
         updateStatus();
         updateStatusTemp();
+        updateWifiStatus();
     }, 2000);
 
     function logout() {

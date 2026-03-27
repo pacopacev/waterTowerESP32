@@ -14,6 +14,7 @@ static esp_err_t fan_status_handler(httpd_req_t *req);
 static esp_err_t fan_on_handler(httpd_req_t *req);
 static esp_err_t fan_off_handler(httpd_req_t *req);
 static esp_err_t temp_status_handler(httpd_req_t *req);
+static esp_err_t wifi_status_handler(httpd_req_t *req);
 static esp_err_t login_api_handler(httpd_req_t *req);
 static esp_err_t login_page_handler(httpd_req_t *req);
 static esp_err_t logout_page_handler(httpd_req_t *req);
@@ -48,12 +49,14 @@ static const char* TAG = "HTTP_SERVER";
 static httpd_handle_t server = NULL;
 
 // Global status variables
+static bool g_wifi_connected = false;
 static bool g_pump_status = false;
 static bool g_fan_status = false;
 static float g_water_temp = 0.0f;
 static bool g_temp_valid = false;
 
-void update_server_status(bool pump, bool fan, float temp, bool temp_valid) {
+void update_server_status(bool wifi_connected, bool pump, bool fan, float temp, bool temp_valid) {
+    g_wifi_connected = wifi_connected;
     g_pump_status = pump;
     g_fan_status = fan;
     g_water_temp = temp;
@@ -96,6 +99,8 @@ static esp_err_t auth_middleware(httpd_req_t *req) {
         return fan_off_handler(req);
     } else if (strcmp(req->uri, "/api/temp/status") == 0) {
         return temp_status_handler(req);
+    } else if (strcmp(req->uri, "/api/wifi/status") == 0) {
+        return wifi_status_handler(req);
     }
     
     return ESP_FAIL;
@@ -174,6 +179,17 @@ static esp_err_t temp_status_handler(httpd_req_t *req) {
              "{\"water_temperature\":%.2f,\"water_temperature_valid\":%s}",
              g_water_temp,
              g_temp_valid ? "true" : "false");
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, response, strlen(response));
+    return ESP_OK;
+}
+
+// WiFi status
+static esp_err_t wifi_status_handler(httpd_req_t *req) {
+    char response[128];
+    snprintf(response, sizeof(response), 
+             "{\"wifi_connected\":%s}",
+             g_wifi_connected ? "true" : "false");
     httpd_resp_set_type(req, "application/json");
     httpd_resp_send(req, response, strlen(response));
     return ESP_OK;
@@ -358,7 +374,8 @@ void start_native_server(void) {
             {"/api/fan/status", HTTP_GET, auth_middleware, NULL},
             {"/api/fan/on", HTTP_POST, auth_middleware, NULL},
             {"/api/fan/off", HTTP_POST, auth_middleware, NULL},
-            {"/api/temp/status", HTTP_GET, auth_middleware, NULL}
+            {"/api/temp/status", HTTP_GET, auth_middleware, NULL},
+            {"/api/wifi/status", HTTP_GET, auth_middleware, NULL},
         };
         
         for (int i = 0; i < sizeof(uris)/sizeof(uris[0]); i++) {

@@ -5,7 +5,7 @@
 
 // Server functions
 void start_native_server(void);
-void update_server_status(bool pump, bool fan, float temp, bool temp_valid);
+void update_server_status(bool wifi_connected, bool pump, bool fan, float temp, bool temp_valid);
 
 // These variables will be defined by the embedded files
 // They are declared as extern here so they can be used in the .cpp file

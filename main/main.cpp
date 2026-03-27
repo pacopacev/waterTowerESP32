@@ -224,14 +224,25 @@ void start_mdns_service(void) {
         return;
     }
 
-        // Set hostname (this will resolve as watertower.local)
-    mdns_hostname_set("watertower");
+    // Set hostname (this will resolve as watertower.local)
+    err = mdns_hostname_set("watertower");
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "mDNS hostname set failed: %d", err);
+    }
     
     // Set default instance name
-    mdns_instance_name_set("Water Tower Control System");
+    err = mdns_instance_name_set("Water Tower Control System");
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "mDNS instance name set failed: %d", err);
+    }
 
     // Add HTTP service
-    mdns_service_add(NULL, "_http", "_tcp", 80, NULL, 0);
+    err = mdns_service_add(NULL, "_http", "_tcp", 80, NULL, 0);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "mDNS service add failed: %d", err);
+    } else {
+        ESP_LOGI(TAG, "✅ mDNS service started: watertower.local");
+    }
 }
 static void http_server_task(void *pvParameter) {
     while (!wifi_connected) {
@@ -245,20 +256,20 @@ static void http_server_task(void *pvParameter) {
 
 void set_pump(bool on) {
     if (on) {
-        gpio_set_level(GPIO_NUM_27, 1);  // ON 
+        gpio_set_level(GPIO_NUM_27, 0);  // ON 
         ESP_LOGI(TAG, "Pump turned ON");
     } else {
-        gpio_set_level(GPIO_NUM_27, 0);  // OFF
+        gpio_set_level(GPIO_NUM_27, 1);  // OFF
         ESP_LOGI(TAG, "Pump turned OFF");
     }
 }
 
 void set_fan(bool on) {
     if (on) {
-        gpio_set_level(GPIO_NUM_26, 1);  // ON
+        gpio_set_level(GPIO_NUM_26, 0);  // ON
         ESP_LOGI(TAG, "Fan turned ON");
     } else {
-        gpio_set_level(GPIO_NUM_26, 0);  // OFF
+        gpio_set_level(GPIO_NUM_26, 1);  // OFF
         ESP_LOGI(TAG, "Fan turned OFF");
     }
 }
@@ -312,9 +323,10 @@ extern "C" void app_main(void) {
     xTaskCreate(&led_control_task, "led_control_task", 2048, NULL, 5, NULL);
 
     // Initialize outputs
-    gpio_set_level(GPIO_NUM_27, 0);//pump
-    gpio_set_level(GPIO_NUM_26, 0);//fan
-    ESP_LOGI(TAG, "GPIO outputs initialized");
+    bool level_pump = gpio_set_level(GPIO_NUM_27, 1);//pump
+    bool level_fan = gpio_set_level(GPIO_NUM_26, 1);//fan
+    ESP_LOGI(TAG, "GPIO outputs initialized %d %d", (int)level_pump, (int)level_fan);
+    
     
     bool led_initialized = false;
     
@@ -340,7 +352,7 @@ extern "C" void app_main(void) {
     
          
     
-        update_server_status(!raw_state_pump, !raw_state_fan, temp, valid);
+        update_server_status(wifi_connected, !raw_state_pump, !raw_state_fan, temp, valid);
 
         if (now - last_log_pump > 1000) {
             ESP_LOGI(TAG, "Raw GPIO%d = %d (%s)", 
