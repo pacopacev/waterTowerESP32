@@ -314,6 +314,11 @@ extern "C" void app_main(void) {
     gpio_reset_pin(GPIO_NUM_26);//fan
     gpio_set_direction(GPIO_NUM_26, GPIO_MODE_OUTPUT);
 
+    // Initialize outputs
+    bool level_pump = gpio_set_level(GPIO_NUM_27, 1);//pump
+    bool level_fan = gpio_set_level(GPIO_NUM_26, 1);//fan
+    ESP_LOGI(TAG, "GPIO outputs initialized %d %d", (int)level_pump, (int)level_fan);
+
     // ✅ 3. THEN: Connect to WiFi
     wifi_init_sta();
 
@@ -322,10 +327,7 @@ extern "C" void app_main(void) {
     xTaskCreate(&http_server_task, "http_server_task", 4096, NULL, 5, NULL);
     xTaskCreate(&led_control_task, "led_control_task", 2048, NULL, 5, NULL);
 
-    // Initialize outputs
-    bool level_pump = gpio_set_level(GPIO_NUM_27, 1);//pump
-    bool level_fan = gpio_set_level(GPIO_NUM_26, 1);//fan
-    ESP_LOGI(TAG, "GPIO outputs initialized %d %d", (int)level_pump, (int)level_fan);
+    
     
     
     bool led_initialized = false;
